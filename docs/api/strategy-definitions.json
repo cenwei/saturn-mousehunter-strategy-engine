@@ -1,0 +1,411 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Strategy Definitions API",
+    "description": "策略定义管理API",
+    "version": "1.0.0"
+  },
+  "components": {
+    "schemas": {
+      "StrategyDefinitionIn": {
+        "type": "object",
+        "required": ["strategy_name", "strategy_type", "author"],
+        "properties": {
+          "strategy_name": {
+            "type": "string",
+            "description": "策略名称",
+            "example": "量化多因子策略"
+          },
+          "strategy_type": {
+            "type": "string",
+            "description": "策略类型",
+            "enum": ["TREND_FOLLOWING", "MEAN_REVERSION", "ARBITRAGE", "MULTI_FACTOR", "MOMENTUM"],
+            "example": "MULTI_FACTOR"
+          },
+          "category": {
+            "type": "string",
+            "description": "策略分类",
+            "example": "量化策略"
+          },
+          "description": {
+            "type": "string",
+            "description": "策略描述",
+            "example": "基于多因子模型的量化选股策略"
+          },
+          "author": {
+            "type": "string",
+            "description": "策略作者",
+            "example": "admin"
+          },
+          "version": {
+            "type": "string",
+            "description": "策略版本",
+            "default": "1.0.0",
+            "example": "1.0.0"
+          },
+          "status": {
+            "type": "string",
+            "description": "策略状态",
+            "enum": ["DRAFT", "PENDING_APPROVAL", "APPROVED", "ARCHIVED", "DEPRECATED"],
+            "default": "DRAFT"
+          },
+          "supported_markets": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "支持的市场",
+            "example": ["CN_STOCK", "US_STOCK"]
+          },
+          "supported_instruments": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "支持的交易品种",
+            "example": ["STOCK", "ETF"]
+          },
+          "time_frames": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "时间周期",
+            "example": ["1d", "1h"]
+          },
+          "max_position_size": {
+            "type": "number",
+            "description": "最大仓位",
+            "example": 100000.0
+          },
+          "max_drawdown": {
+            "type": "number",
+            "description": "最大回撤限制",
+            "example": 0.15
+          },
+          "stop_loss_pct": {
+            "type": "number",
+            "description": "止损百分比",
+            "example": 0.05
+          },
+          "take_profit_pct": {
+            "type": "number",
+            "description": "止盈百分比",
+            "example": 0.10
+          }
+        }
+      },
+      "StrategyDefinitionOut": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "策略ID",
+            "example": "01HXKZM9Q8N7P2R5T3V6X8Y9Z0"
+          },
+          "strategy_name": {"type": "string"},
+          "strategy_type": {"type": "string"},
+          "category": {"type": "string"},
+          "description": {"type": "string"},
+          "author": {"type": "string"},
+          "version": {"type": "string"},
+          "status": {"type": "string"},
+          "supported_markets": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "supported_instruments": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "time_frames": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "max_position_size": {"type": "number"},
+          "max_drawdown": {"type": "number"},
+          "stop_loss_pct": {"type": "number"},
+          "take_profit_pct": {"type": "number"},
+          "is_active": {"type": "boolean"},
+          "usage_count": {"type": "integer"},
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {"type": "string"},
+          "updated_by": {"type": "string"}
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/strategies": {
+      "post": {
+        "tags": ["strategy-definitions"],
+        "summary": "创建策略定义",
+        "description": "创建新的策略定义",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/StrategyDefinitionIn"},
+              "example": {
+                "strategy_name": "量化多因子策略",
+                "strategy_type": "MULTI_FACTOR",
+                "category": "量化策略",
+                "description": "基于多因子模型的量化选股策略",
+                "author": "admin",
+                "version": "1.0.0",
+                "status": "DRAFT",
+                "supported_markets": ["CN_STOCK"],
+                "supported_instruments": ["STOCK"],
+                "time_frames": ["1d"],
+                "max_position_size": 100000.0,
+                "max_drawdown": 0.15,
+                "stop_loss_pct": 0.05,
+                "take_profit_pct": 0.10
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "策略创建成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/StrategyDefinitionOut"}
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "get": {
+        "tags": ["strategy-definitions"],
+        "summary": "获取策略列表",
+        "description": "获取策略定义列表",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "strategy_type",
+            "in": "query",
+            "description": "策略类型筛选",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "description": "作者筛选",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "状态筛选",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "返回数量限制",
+            "schema": {"type": "integer", "default": 50, "maximum": 200}
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "偏移量",
+            "schema": {"type": "integer", "default": 0}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "策略列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/StrategyDefinitionOut"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/strategies/{strategy_id}": {
+      "get": {
+        "tags": ["strategy-definitions"],
+        "summary": "获取策略详情",
+        "description": "根据ID获取策略定义详情",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "strategy_id",
+            "in": "path",
+            "required": true,
+            "description": "策略ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "策略详情",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/StrategyDefinitionOut"}
+              }
+            }
+          },
+          "404": {
+            "description": "策略不存在"
+          }
+        }
+      },
+      "put": {
+        "tags": ["strategy-definitions"],
+        "summary": "更新策略定义",
+        "description": "更新策略定义信息",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "strategy_id",
+            "in": "path",
+            "required": true,
+            "description": "策略ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "description": {"type": "string"},
+                  "status": {"type": "string"},
+                  "max_position_size": {"type": "number"},
+                  "max_drawdown": {"type": "number"},
+                  "stop_loss_pct": {"type": "number"},
+                  "take_profit_pct": {"type": "number"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/StrategyDefinitionOut"}
+              }
+            }
+          },
+          "404": {
+            "description": "策略不存在"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["strategy-definitions"],
+        "summary": "删除策略定义",
+        "description": "软删除策略定义",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "strategy_id",
+            "in": "path",
+            "required": true,
+            "description": "策略ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "策略不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/strategies/{strategy_id}/approve": {
+      "get": {
+        "tags": ["strategy-definitions"],
+        "summary": "审批策略",
+        "description": "审批策略定义",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "strategy_id",
+            "in": "path",
+            "required": true,
+            "description": "策略ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "审批成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/StrategyDefinitionOut"}
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足，需要管理员权限"
+          },
+          "404": {
+            "description": "策略不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/strategies/stats/popular": {
+      "get": {
+        "tags": ["strategy-definitions"],
+        "summary": "获取热门策略",
+        "description": "获取热门策略列表",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "返回数量限制",
+            "schema": {"type": "integer", "default": 10, "maximum": 50}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "热门策略列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/StrategyDefinitionOut"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

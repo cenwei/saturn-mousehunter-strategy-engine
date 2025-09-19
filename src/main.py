@@ -12,7 +12,9 @@ from saturn_mousehunter_shared.log.logger import get_logger
 from infrastructure.config.app_config import get_app_config
 from infrastructure.db.base_dao import AsyncDAO
 from api.routes import strategy_definition
+from api.routes import strategy_signals, strategy_backtests
 from api.dependencies.services import get_dao
+from api.middleware.auth import auth_service
 
 
 # 获取配置和日志
@@ -35,6 +37,7 @@ async def lifespan(app: FastAPI):
     # 关闭数据库连接池
     await dao.close()
     log.info("Strategy Engine service stopped")
+    await auth_service.close()
 
 
 # 创建FastAPI应用
@@ -57,6 +60,8 @@ app.add_middleware(
 
 # 注册路由
 app.include_router(strategy_definition.router)
+app.include_router(strategy_signals.router)
+app.include_router(strategy_backtests.router)
 
 # 健康检查端点
 @app.get("/health")

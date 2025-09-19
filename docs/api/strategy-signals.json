@@ -1,0 +1,518 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Strategy Signals API",
+    "description": "策略信号管理API - 支持多时间周期交易信号",
+    "version": "1.0.0"
+  },
+  "components": {
+    "schemas": {
+      "SignalCreate": {
+        "type": "object",
+        "required": ["strategy_instance_id", "signal_type", "symbol", "timeframe"],
+        "properties": {
+          "strategy_instance_id": {
+            "type": "string",
+            "description": "策略实例ID",
+            "example": "01HXKZM9Q8N7P2R5T3V6X8Y9Z0"
+          },
+          "signal_type": {
+            "type": "string",
+            "enum": ["BUY", "SELL", "HOLD", "LONG", "SHORT", "CLOSE"],
+            "description": "信号类型",
+            "example": "BUY"
+          },
+          "symbol": {
+            "type": "string",
+            "description": "交易标的",
+            "example": "000001.SZ"
+          },
+          "timeframe": {
+            "type": "string",
+            "enum": ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M"],
+            "description": "时间周期",
+            "example": "1d"
+          },
+          "price": {
+            "type": "number",
+            "description": "信号价格",
+            "example": 12.35
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "交易数量",
+            "example": 1000
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "信号置信度 (0-1)",
+            "example": 0.85
+          },
+          "metadata": {
+            "type": "object",
+            "description": "信号元数据",
+            "example": {"reason": "多因子评分高", "factor_score": 8.5}
+          },
+          "signal_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "信号生成时间 (可选，默认为当前时间)"
+          }
+        }
+      },
+      "SignalResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "信号ID",
+            "example": "01HXKZM9Q8N7P2R5T3V6X8Y9Z1"
+          },
+          "strategy_instance_id": {"type": "string"},
+          "signal_type": {"type": "string"},
+          "symbol": {"type": "string"},
+          "timeframe": {"type": "string"},
+          "price": {"type": "number"},
+          "quantity": {"type": "integer"},
+          "confidence": {"type": "number"},
+          "metadata": {"type": "object"},
+          "signal_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "execution_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": ["PENDING", "EXECUTED", "CANCELLED", "EXPIRED"],
+            "description": "信号状态"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SignalUpdate": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["PENDING", "EXECUTED", "CANCELLED", "EXPIRED"],
+            "description": "信号状态"
+          },
+          "execution_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "执行时间 (当状态为EXECUTED时必填)"
+          }
+        }
+      },
+      "SignalStats": {
+        "type": "object",
+        "properties": {
+          "total_signals": {
+            "type": "integer",
+            "description": "总信号数"
+          },
+          "buy_signals": {
+            "type": "integer",
+            "description": "买入信号数"
+          },
+          "sell_signals": {
+            "type": "integer",
+            "description": "卖出信号数"
+          },
+          "avg_confidence": {
+            "type": "number",
+            "description": "平均置信度"
+          },
+          "unique_symbols": {
+            "type": "integer",
+            "description": "涉及标的数量"
+          },
+          "unique_timeframes": {
+            "type": "integer",
+            "description": "涉及时间周期数量"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/signals/": {
+      "post": {
+        "tags": ["strategy-signals"],
+        "summary": "创建交易信号",
+        "description": "创建新的交易信号",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/SignalCreate"},
+              "examples": {
+                "buy_signal": {
+                  "summary": "买入信号示例",
+                  "value": {
+                    "strategy_instance_id": "01HXKZM9Q8N7P2R5T3V6X8Y9Z0",
+                    "signal_type": "BUY",
+                    "symbol": "000001.SZ",
+                    "timeframe": "1d",
+                    "price": 12.35,
+                    "quantity": 1000,
+                    "confidence": 0.85,
+                    "metadata": {"reason": "多因子评分高"}
+                  }
+                },
+                "short_signal": {
+                  "summary": "开空信号示例",
+                  "value": {
+                    "strategy_instance_id": "01HXKZM9Q8N7P2R5T3V6X8Y9Z0",
+                    "signal_type": "SHORT",
+                    "symbol": "000002.SZ",
+                    "timeframe": "5m",
+                    "price": 25.75,
+                    "quantity": 200,
+                    "confidence": 0.60
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "信号创建成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/SignalResponse"}
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          }
+        }
+      },
+      "get": {
+        "tags": ["strategy-signals"],
+        "summary": "获取信号列表",
+        "description": "获取交易信号列表，支持多种筛选条件",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "strategy_instance_id",
+            "in": "query",
+            "description": "策略实例ID",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "symbol",
+            "in": "query",
+            "description": "交易标的",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "description": "时间周期",
+            "schema": {
+              "type": "string",
+              "enum": ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M"]
+            }
+          },
+          {
+            "name": "signal_type",
+            "in": "query",
+            "description": "信号类型",
+            "schema": {
+              "type": "string",
+              "enum": ["BUY", "SELL", "HOLD", "LONG", "SHORT", "CLOSE"]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "信号状态",
+            "schema": {
+              "type": "string",
+              "enum": ["PENDING", "EXECUTED", "CANCELLED", "EXPIRED"]
+            }
+          },
+          {
+            "name": "start_time",
+            "in": "query",
+            "description": "开始时间",
+            "schema": {"type": "string", "format": "date-time"}
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "description": "结束时间",
+            "schema": {"type": "string", "format": "date-time"}
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "返回数量限制",
+            "schema": {"type": "integer", "default": 100, "maximum": 1000}
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "偏移量",
+            "schema": {"type": "integer", "default": 0}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "信号列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/SignalResponse"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/signals/{signal_id}": {
+      "get": {
+        "tags": ["strategy-signals"],
+        "summary": "获取信号详情",
+        "description": "根据ID获取单个信号的详细信息",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "description": "信号ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "信号详情",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/SignalResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "信号不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/signals/{signal_id}/status": {
+      "put": {
+        "tags": ["strategy-signals"],
+        "summary": "更新信号状态",
+        "description": "更新信号的执行状态",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "description": "信号ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/SignalUpdate"},
+              "examples": {
+                "executed": {
+                  "summary": "标记为已执行",
+                  "value": {
+                    "status": "EXECUTED",
+                    "execution_time": "2023-12-01T10:30:00Z"
+                  }
+                },
+                "cancelled": {
+                  "summary": "取消信号",
+                  "value": {
+                    "status": "CANCELLED"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "状态更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"},
+                    "signal_id": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "信号不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/signals/symbol/{symbol}/timeframe/{timeframe}": {
+      "get": {
+        "tags": ["strategy-signals"],
+        "summary": "按标的和时间周期获取信号",
+        "description": "获取特定交易标的和时间周期的信号列表",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "path",
+            "required": true,
+            "description": "交易标的",
+            "schema": {"type": "string"},
+            "example": "000001.SZ"
+          },
+          {
+            "name": "timeframe",
+            "in": "path",
+            "required": true,
+            "description": "时间周期",
+            "schema": {
+              "type": "string",
+              "enum": ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M"]
+            },
+            "example": "1h"
+          },
+          {
+            "name": "start_time",
+            "in": "query",
+            "description": "开始时间",
+            "schema": {"type": "string", "format": "date-time"}
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "description": "结束时间",
+            "schema": {"type": "string", "format": "date-time"}
+          },
+          {
+            "name": "signal_types",
+            "in": "query",
+            "description": "信号类型列表",
+            "schema": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "返回数量限制",
+            "schema": {"type": "integer", "default": 100, "maximum": 1000}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "信号列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/SignalResponse"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/signals/stats/{strategy_instance_id}": {
+      "get": {
+        "tags": ["strategy-signals"],
+        "summary": "获取信号统计",
+        "description": "获取策略实例的信号绩效统计",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "strategy_instance_id",
+            "in": "path",
+            "required": true,
+            "description": "策略实例ID",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "description": "统计开始日期",
+            "schema": {"type": "string", "format": "date-time"}
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "description": "统计结束日期",
+            "schema": {"type": "string", "format": "date-time"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "信号统计",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/SignalStats"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/signals/latest/all": {
+      "get": {
+        "tags": ["strategy-signals"],
+        "summary": "获取最新信号",
+        "description": "获取系统中最新的信号列表",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "返回数量限制",
+            "schema": {"type": "integer", "default": 20, "maximum": 100}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "最新信号列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/SignalResponse"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

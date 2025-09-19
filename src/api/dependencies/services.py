@@ -6,12 +6,9 @@ from functools import lru_cache
 
 from infrastructure.db.base_dao import AsyncDAO
 from infrastructure.config.app_config import get_app_config
-from infrastructure.repositories import (
-    StrategyDefinitionRepo, StrategyVersionRepo, StrategyInstanceRepo,
-    TradingSignalRepo, SignalQueueConfigRepo, SignalQueueItemRepo,
-    StrategyPoolRepo, StrategyPoolMemberRepo,
-    BacktestConfigRepo, BacktestExecutionRepo
-)
+from infrastructure.repositories.strategy_definition_repo import StrategyDefinitionRepo
+from infrastructure.repositories.strategy_signal_repo import StrategySignalRepository
+from infrastructure.repositories.strategy_backtest_repo import StrategyBacktestRepository
 from application.services.strategy_definition_service import StrategyDefinitionService
 from application.services.trading_signal_service import TradingSignalService
 
@@ -29,69 +26,19 @@ def get_strategy_definition_repo() -> StrategyDefinitionRepo:
     return StrategyDefinitionRepo(dao)
 
 
-def get_strategy_version_repo() -> StrategyVersionRepo:
-    """获取策略版本Repository"""
+def get_strategy_signal_repo() -> StrategySignalRepository:
+    """获取策略信号Repository"""
     dao = get_dao()
-    return StrategyVersionRepo(dao)
+    return StrategySignalRepository(dao)
 
 
-def get_strategy_instance_repo() -> StrategyInstanceRepo:
-    """获取策略实例Repository"""
+def get_strategy_backtest_repo() -> StrategyBacktestRepository:
+    """获取策略回测Repository"""
     dao = get_dao()
-    return StrategyInstanceRepo(dao)
-
-
-def get_trading_signal_repo() -> TradingSignalRepo:
-    """获取交易信号Repository"""
-    dao = get_dao()
-    return TradingSignalRepo(dao)
-
-
-def get_signal_queue_config_repo() -> SignalQueueConfigRepo:
-    """获取信号队列配置Repository"""
-    dao = get_dao()
-    return SignalQueueConfigRepo(dao)
-
-
-def get_signal_queue_item_repo() -> SignalQueueItemRepo:
-    """获取信号队列项Repository"""
-    dao = get_dao()
-    return SignalQueueItemRepo(dao)
-
-
-def get_strategy_pool_repo() -> StrategyPoolRepo:
-    """获取策略池Repository"""
-    dao = get_dao()
-    return StrategyPoolRepo(dao)
-
-
-def get_strategy_pool_member_repo() -> StrategyPoolMemberRepo:
-    """获取策略池成员Repository"""
-    dao = get_dao()
-    return StrategyPoolMemberRepo(dao)
-
-
-def get_backtest_config_repo() -> BacktestConfigRepo:
-    """获取回测配置Repository"""
-    dao = get_dao()
-    return BacktestConfigRepo(dao)
-
-
-def get_backtest_execution_repo() -> BacktestExecutionRepo:
-    """获取回测执行Repository"""
-    dao = get_dao()
-    return BacktestExecutionRepo(dao)
+    return StrategyBacktestRepository(dao)
 
 
 def get_strategy_definition_service() -> StrategyDefinitionService:
     """获取策略定义服务"""
     strategy_repo = get_strategy_definition_repo()
     return StrategyDefinitionService(strategy_repo)
-
-
-def get_trading_signal_service() -> TradingSignalService:
-    """获取交易信号服务"""
-    signal_repo = get_trading_signal_repo()
-    queue_config_repo = get_signal_queue_config_repo()
-    queue_item_repo = get_signal_queue_item_repo()
-    return TradingSignalService(signal_repo, queue_config_repo, queue_item_repo)

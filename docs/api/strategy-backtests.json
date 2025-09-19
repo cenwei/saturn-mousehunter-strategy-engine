@@ -1,0 +1,704 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Strategy Backtests API",
+    "description": "策略回测管理API - 提供完整的回测生命周期管理",
+    "version": "1.0.0"
+  },
+  "components": {
+    "schemas": {
+      "BacktestCreate": {
+        "type": "object",
+        "required": ["backtest_name", "strategy_id", "start_date", "end_date"],
+        "properties": {
+          "backtest_name": {
+            "type": "string",
+            "description": "回测任务名称",
+            "example": "多因子策略回测"
+          },
+          "strategy_id": {
+            "type": "string",
+            "description": "策略ID",
+            "example": "01HXKZM9Q8N7P2R5T3V6X8Y9Z0"
+          },
+          "version_id": {
+            "type": "string",
+            "description": "策略版本ID (可选)",
+            "nullable": true
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "回测开始日期",
+            "example": "2023-01-01"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "description": "回测结束日期",
+            "example": "2023-12-31"
+          },
+          "initial_capital": {
+            "type": "number",
+            "description": "初始资金",
+            "default": 100000.00,
+            "minimum": 1,
+            "example": 1000000.00
+          },
+          "parameters": {
+            "type": "object",
+            "description": "回测参数",
+            "example": {
+              "commission_rate": 0.0003,
+              "slippage": 0.001,
+              "benchmark": "000300.SH"
+            }
+          }
+        }
+      },
+      "BacktestResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "回测任务ID"
+          },
+          "backtest_name": {"type": "string"},
+          "strategy_id": {"type": "string"},
+          "version_id": {"type": "string", "nullable": true},
+          "start_date": {"type": "string", "format": "date"},
+          "end_date": {"type": "string", "format": "date"},
+          "initial_capital": {"type": "number"},
+          "parameters": {"type": "object"},
+          "status": {
+            "type": "string",
+            "enum": ["PENDING", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"],
+            "description": "回测状态"
+          },
+          "progress": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "执行进度百分比"
+          },
+          "error_message": {
+            "type": "string",
+            "nullable": true,
+            "description": "错误信息"
+          },
+          "created_at": {"type": "string", "format": "date-time"},
+          "started_at": {"type": "string", "format": "date-time", "nullable": true},
+          "completed_at": {"type": "string", "format": "date-time", "nullable": true},
+          "created_by": {"type": "string"}
+        }
+      },
+      "BacktestResults": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "backtest_id": {"type": "string"},
+          "total_return": {
+            "type": "number",
+            "description": "总收益率",
+            "nullable": true
+          },
+          "annualized_return": {
+            "type": "number",
+            "description": "年化收益率",
+            "nullable": true
+          },
+          "volatility": {
+            "type": "number",
+            "description": "波动率",
+            "nullable": true
+          },
+          "sharpe_ratio": {
+            "type": "number",
+            "description": "夏普比率",
+            "nullable": true
+          },
+          "max_drawdown": {
+            "type": "number",
+            "description": "最大回撤",
+            "nullable": true
+          },
+          "win_rate": {
+            "type": "number",
+            "description": "胜率",
+            "nullable": true
+          },
+          "total_trades": {
+            "type": "integer",
+            "description": "总交易次数",
+            "nullable": true
+          },
+          "profitable_trades": {
+            "type": "integer",
+            "description": "盈利交易次数",
+            "nullable": true
+          },
+          "avg_trade_return": {
+            "type": "number",
+            "description": "平均交易收益",
+            "nullable": true
+          },
+          "detailed_metrics": {
+            "type": "object",
+            "description": "详细指标",
+            "nullable": true
+          },
+          "equity_curve": {
+            "type": "array",
+            "items": {"type": "object"},
+            "description": "净值曲线数据",
+            "nullable": true
+          },
+          "trade_history": {
+            "type": "array",
+            "items": {"type": "object"},
+            "description": "交易历史",
+            "nullable": true
+          },
+          "created_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "BacktestStatusUpdate": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["PENDING", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"],
+            "description": "回测状态"
+          },
+          "progress": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "执行进度"
+          },
+          "error_message": {
+            "type": "string",
+            "description": "错误信息 (status为FAILED时使用)"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/backtests/": {
+      "post": {
+        "tags": ["strategy-backtests"],
+        "summary": "创建回测任务",
+        "description": "创建新的策略回测任务",
+        "security": [{"BearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/BacktestCreate"},
+              "example": {
+                "backtest_name": "多因子策略回测",
+                "strategy_id": "01HXKZM9Q8N7P2R5T3V6X8Y9Z0",
+                "start_date": "2023-01-01",
+                "end_date": "2023-12-31",
+                "initial_capital": 1000000.00,
+                "parameters": {
+                  "commission_rate": 0.0003,
+                  "slippage": 0.001,
+                  "benchmark": "000300.SH"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "回测任务创建成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/BacktestResponse"}
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          }
+        }
+      },
+      "get": {
+        "tags": ["strategy-backtests"],
+        "summary": "获取回测任务列表",
+        "description": "获取回测任务列表",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "strategy_id",
+            "in": "query",
+            "description": "策略ID筛选",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "状态筛选",
+            "schema": {
+              "type": "string",
+              "enum": ["PENDING", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"]
+            }
+          },
+          {
+            "name": "created_by",
+            "in": "query",
+            "description": "创建者筛选",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "返回数量限制",
+            "schema": {"type": "integer", "default": 50, "maximum": 200}
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "偏移量",
+            "schema": {"type": "integer", "default": 0}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "回测任务列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/BacktestResponse"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backtests/{backtest_id}": {
+      "get": {
+        "tags": ["strategy-backtests"],
+        "summary": "获取回测任务详情",
+        "description": "根据ID获取回测任务详细信息",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "backtest_id",
+            "in": "path",
+            "required": true,
+            "description": "回测任务ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "回测任务详情",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/BacktestResponse"}
+              }
+            }
+          },
+          "404": {
+            "description": "回测任务不存在"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["strategy-backtests"],
+        "summary": "删除回测任务",
+        "description": "删除回测任务和相关结果 (需要管理员权限)",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "backtest_id",
+            "in": "path",
+            "required": true,
+            "description": "回测任务ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"},
+                    "backtest_id": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限不足，需要管理员权限"
+          },
+          "404": {
+            "description": "回测任务不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/backtests/{backtest_id}/status": {
+      "put": {
+        "tags": ["strategy-backtests"],
+        "summary": "更新回测状态",
+        "description": "更新回测任务的执行状态",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "backtest_id",
+            "in": "path",
+            "required": true,
+            "description": "回测任务ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {"$ref": "#/components/schemas/BacktestStatusUpdate"},
+              "examples": {
+                "start_running": {
+                  "summary": "开始执行",
+                  "value": {
+                    "status": "RUNNING",
+                    "progress": 0
+                  }
+                },
+                "update_progress": {
+                  "summary": "更新进度",
+                  "value": {
+                    "status": "RUNNING",
+                    "progress": 50
+                  }
+                },
+                "completed": {
+                  "summary": "执行完成",
+                  "value": {
+                    "status": "COMPLETED",
+                    "progress": 100
+                  }
+                },
+                "failed": {
+                  "summary": "执行失败",
+                  "value": {
+                    "status": "FAILED",
+                    "error_message": "数据获取失败"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "状态更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"},
+                    "backtest_id": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "回测任务不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/backtests/{backtest_id}/results": {
+      "post": {
+        "tags": ["strategy-backtests"],
+        "summary": "保存回测结果",
+        "description": "保存回测任务的执行结果",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "backtest_id",
+            "in": "path",
+            "required": true,
+            "description": "回测任务ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "total_return": {"type": "number"},
+                  "annualized_return": {"type": "number"},
+                  "volatility": {"type": "number"},
+                  "sharpe_ratio": {"type": "number"},
+                  "max_drawdown": {"type": "number"},
+                  "win_rate": {"type": "number"},
+                  "total_trades": {"type": "integer"},
+                  "profitable_trades": {"type": "integer"},
+                  "avg_trade_return": {"type": "number"},
+                  "detailed_metrics": {"type": "object"},
+                  "equity_curve": {
+                    "type": "array",
+                    "items": {"type": "object"}
+                  },
+                  "trade_history": {
+                    "type": "array",
+                    "items": {"type": "object"}
+                  }
+                }
+              },
+              "example": {
+                "total_return": 0.235,
+                "annualized_return": 0.185,
+                "volatility": 0.142,
+                "sharpe_ratio": 1.303,
+                "max_drawdown": -0.085,
+                "win_rate": 0.65,
+                "total_trades": 248,
+                "profitable_trades": 161,
+                "avg_trade_return": 0.0012
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "结果保存成功",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/BacktestResults"}
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          }
+        }
+      },
+      "get": {
+        "tags": ["strategy-backtests"],
+        "summary": "获取回测结果",
+        "description": "获取回测任务的执行结果",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "backtest_id",
+            "in": "path",
+            "required": true,
+            "description": "回测任务ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "回测结果",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/BacktestResults"}
+              }
+            }
+          },
+          "404": {
+            "description": "回测结果不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/backtests/{backtest_id}/start": {
+      "post": {
+        "tags": ["strategy-backtests"],
+        "summary": "启动回测任务",
+        "description": "启动回测任务执行",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "backtest_id",
+            "in": "path",
+            "required": true,
+            "description": "回测任务ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "启动成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"},
+                    "backtest_id": {"type": "string"},
+                    "status": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "回测任务不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/backtests/{backtest_id}/cancel": {
+      "post": {
+        "tags": ["strategy-backtests"],
+        "summary": "取消回测任务",
+        "description": "取消正在执行的回测任务",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "backtest_id",
+            "in": "path",
+            "required": true,
+            "description": "回测任务ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "取消成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"},
+                    "backtest_id": {"type": "string"},
+                    "status": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "回测任务不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/backtests/{backtest_id}/complete": {
+      "get": {
+        "tags": ["strategy-backtests"],
+        "summary": "获取完整回测信息",
+        "description": "获取回测任务和结果的完整信息",
+        "security": [{"BearerAuth": []}],
+        "parameters": [
+          {
+            "name": "backtest_id",
+            "in": "path",
+            "required": true,
+            "description": "回测任务ID",
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "完整回测信息",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {"$ref": "#/components/schemas/BacktestResponse"},
+                    {"$ref": "#/components/schemas/BacktestResults"}
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "回测任务不存在"
+          }
+        }
+      }
+    },
+    "/api/v1/backtests/engine/status": {
+      "get": {
+        "tags": ["strategy-backtests"],
+        "summary": "获取回测引擎状态",
+        "description": "获取回测引擎的运行状态信息",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "回测引擎状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "engine_status": {
+                      "type": "string",
+                      "description": "引擎状态"
+                    },
+                    "active_backtests": {
+                      "type": "integer",
+                      "description": "活跃回测数量"
+                    },
+                    "queue_size": {
+                      "type": "integer",
+                      "description": "队列大小"
+                    },
+                    "max_concurrent": {
+                      "type": "integer",
+                      "description": "最大并发数"
+                    },
+                    "version": {
+                      "type": "string",
+                      "description": "引擎版本"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backtests/templates": {
+      "get": {
+        "tags": ["strategy-backtests"],
+        "summary": "获取回测模板",
+        "description": "获取预定义的回测参数模板",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "回测模板列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {"type": "string"},
+                      "description": {"type": "string"},
+                      "parameters": {"type": "object"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

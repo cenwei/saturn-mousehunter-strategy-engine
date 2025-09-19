@@ -1,0 +1,126 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Saturn MouseHunter Strategy Engine API",
+    "description": "策略引擎微服务 - 提供策略管理、信号生成、回测功能",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Saturn MouseHunter Team",
+      "url": "https://github.com/your-org/saturn-mousehunter-strategy-engine"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://192.168.8.168:8002",
+      "description": "Strategy Engine Development Server"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token obtained from auth service (http://192.168.8.168:8001/api/v1/auth/login)"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "strategy-definitions",
+      "description": "策略定义管理",
+      "externalDocs": {
+        "description": "详细文档",
+        "url": "./strategy-definitions.json"
+      }
+    },
+    {
+      "name": "strategy-signals",
+      "description": "交易信号管理",
+      "externalDocs": {
+        "description": "详细文档",
+        "url": "./strategy-signals.json"
+      }
+    },
+    {
+      "name": "strategy-backtests",
+      "description": "回测管理",
+      "externalDocs": {
+        "description": "详细文档",
+        "url": "./strategy-backtests.json"
+      }
+    },
+    {
+      "name": "system",
+      "description": "系统接口",
+      "externalDocs": {
+        "description": "详细文档",
+        "url": "./system.json"
+      }
+    }
+  ],
+  "paths": {
+    "/health": {
+      "$ref": "./system.json#/paths/~1health"
+    },
+    "/": {
+      "$ref": "./system.json#/paths/~1"
+    },
+    "/api/v1/strategies": {
+      "$ref": "./strategy-definitions.json#/paths/~1api~1v1~1strategies"
+    },
+    "/api/v1/strategies/{strategy_id}": {
+      "$ref": "./strategy-definitions.json#/paths/~1api~1v1~1strategies~1{strategy_id}"
+    },
+    "/api/v1/strategies/{strategy_id}/approve": {
+      "$ref": "./strategy-definitions.json#/paths/~1api~1v1~1strategies~1{strategy_id}~1approve"
+    },
+    "/api/v1/strategies/stats/popular": {
+      "$ref": "./strategy-definitions.json#/paths/~1api~1v1~1strategies~1stats~1popular"
+    },
+    "/api/v1/signals/": {
+      "$ref": "./strategy-signals.json#/paths/~1api~1v1~1signals~1"
+    },
+    "/api/v1/signals/{signal_id}": {
+      "$ref": "./strategy-signals.json#/paths/~1api~1v1~1signals~1{signal_id}"
+    },
+    "/api/v1/signals/{signal_id}/status": {
+      "$ref": "./strategy-signals.json#/paths/~1api~1v1~1signals~1{signal_id}~1status"
+    },
+    "/api/v1/signals/symbol/{symbol}/timeframe/{timeframe}": {
+      "$ref": "./strategy-signals.json#/paths/~1api~1v1~1signals~1symbol~1{symbol}~1timeframe~1{timeframe}"
+    },
+    "/api/v1/signals/stats/{strategy_instance_id}": {
+      "$ref": "./strategy-signals.json#/paths/~1api~1v1~1signals~1stats~1{strategy_instance_id}"
+    },
+    "/api/v1/signals/latest/all": {
+      "$ref": "./strategy-signals.json#/paths/~1api~1v1~1signals~1latest~1all"
+    },
+    "/api/v1/backtests/": {
+      "$ref": "./strategy-backtests.json#/paths/~1api~1v1~1backtests~1"
+    },
+    "/api/v1/backtests/{backtest_id}": {
+      "$ref": "./strategy-backtests.json#/paths/~1api~1v1~1backtests~1{backtest_id}"
+    },
+    "/api/v1/backtests/{backtest_id}/status": {
+      "$ref": "./strategy-backtests.json#/paths/~1api~1v1~1backtests~1{backtest_id}~1status"
+    },
+    "/api/v1/backtests/{backtest_id}/results": {
+      "$ref": "./strategy-backtests.json#/paths/~1api~1v1~1backtests~1{backtest_id}~1results"
+    },
+    "/api/v1/backtests/{backtest_id}/complete": {
+      "$ref": "./strategy-backtests.json#/paths/~1api~1v1~1backtests~1{backtest_id}~1complete"
+    },
+    "/api/v1/backtests/{backtest_id}/start": {
+      "$ref": "./strategy-backtests.json#/paths/~1api~1v1~1backtests~1{backtest_id}~1start"
+    },
+    "/api/v1/backtests/{backtest_id}/cancel": {
+      "$ref": "./strategy-backtests.json#/paths/~1api~1v1~1backtests~1{backtest_id}~1cancel"
+    }
+  }
+}
